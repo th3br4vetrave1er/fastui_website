@@ -1,11 +1,12 @@
 from datetime import date
-
+import annotated
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 from fastui import FastUI, AnyComponent, prebuilt_html, components as c
 from fastui.components.display import DisplayMode, DisplayLookup
 from fastui.events import GoToEvent, BackEvent
 from pydantic import BaseModel, Field
+from fastui import fastuiform
 
 app = FastAPI()
 
@@ -16,6 +17,11 @@ class User(BaseModel):
     dob: date = Field(title='Date of Birth')
 
 
+class UserAdd(BaseModel):
+    name: str = Field(title='Имя')
+    dob: date = Field(title='Дата рождения')
+
+
 # define some users
 users = [
     User(id=1, name='John', dob=date(1990, 1, 1)),
@@ -23,6 +29,31 @@ users = [
     User(id=3, name='Jill', dob=date(1992, 1, 1)),
     User(id=4, name='Jane', dob=date(1993, 1, 1)),
 ]
+
+
+@app.post('/api/user')
+def add_user(form: annotated[UserAdd, fastui_form(UserAdd)]):
+    print(f'{form=}')
+
+
+@app.get('/api/user/add', response_model=FastUI, response_model_exclude_none=True)
+def add_user_page():
+    return [
+        c.Page(
+            components=[
+                c.Link(components=[c.Text(text='Назад')], on_click=BackEvent()),
+                c.Heading(text='Добавить пользователя', level=2),
+                c.ModelForm(
+                    model=UserAdd,
+                    submit_url='/api/user'
+                )
+            ])
+    ]
+
+
+
+# Rebuild the Page model after all components are defined
+c.Page.model_rebuild()
 
 
 @app.get("/api/", response_model=FastUI, response_model_exclude_none=True)
